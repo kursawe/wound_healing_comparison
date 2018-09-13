@@ -15,7 +15,7 @@
 #include "SmartPointers.hpp"
 #include "SimpleTargetAreaModifier.hpp"
 #include "VertexMeshReader.hpp"
-#include "Debug.hpp"
+#include "WoundHealingForce.hpp"
 
 class TestWoundHealing : public AbstractCellBasedWithTimingsTestSuite
 {
@@ -86,23 +86,18 @@ public:
 
     void TestReadAndRunVirtualLeaf()
     {
-        MARK;
         VertexMeshReader<2,2> mesh_reader("projects/wound_healing_comparison/test/data/virtual_leaf");
-        MARK;
         MutableVertexMesh<2,2> mesh;
-        MARK;
         mesh.ConstructFromMeshReader(mesh_reader);
 
-        MARK;
-//        for (unsigned element_index = 0; element_index < mesh.GetNumAllElements(); element_index++)
-//        {
-//            if (mesh.GetElement(element_index)->GetNumNodes() > 12)
-//            {
-////                mesh.DeleteElementPriorToReMesh(element_index);
-//            }
-//        }
+        for (unsigned element_index = 0; element_index < mesh.GetNumAllElements(); element_index++)
+        {
+            if (mesh.GetElement(element_index)->GetNumNodes() > 12)
+            {
+                mesh.DeleteElementPriorToReMesh(element_index);
+            }
+        }
 //
-//        MARK;
         mesh.ReMesh();
 
         // Create cells
@@ -110,7 +105,6 @@ public:
         CellsGenerator<NoCellCycleModel, 2> cells_generator;
         cells_generator.GenerateBasic(cells, mesh.GetNumElements());
 
-        MARK;
         for (unsigned i=0; i<cells.size(); i++)
         {
             cells[i]->SetBirthTime(-(double)i -19.0);
@@ -118,26 +112,27 @@ public:
 
         // Create cell population
         VertexBasedCellPopulation<2> cell_population(mesh, cells);
+//        cell_population.SetRestrictVertexMovementBoolean(false);
 
         // Set up cell-based simulation
         OffLatticeSimulation<2> simulator(cell_population);
         simulator.SetOutputDirectory("TestReadAndRunVirtalLeaf");
-        simulator.SetEndTime(20.0);
-        simulator.SetSamplingTimestepMultiple(10);
+        simulator.SetEndTime(200.0);
+        simulator.SetSamplingTimestepMultiple(50);
         // Create a force law and pass it to the simulation
-        MAKE_PTR(FarhadifarForce<2>, p_force);
-        simulator.AddForce(p_force);
+        MAKE_PTR(FarhadifarForce<2>, p_farhadifar_force);
+        simulator.AddForce(p_farhadifar_force);
+//        MAKE_PTR(WoundHealingForce<2>, p_wound_force);
+//        p_wound_force->SetWoundTensionParameter(100.0);
+//        simulator.AddForce(p_wound_force);
 
-        MARK;
         // A FarhadifarForce has to be used together with an AbstractTargetAreaModifier#2488
         MAKE_PTR(SimpleTargetAreaModifier<2>, p_growth_modifier);
         p_growth_modifier->SetGrowthDuration(0.0);
         simulator.AddSimulationModifier(p_growth_modifier);
 
-        MARK;
         simulator.SetDt(0.01);
 
-        MARK;
         // Run simulation
         simulator.Solve();
     }
