@@ -90,14 +90,27 @@ public:
         MutableVertexMesh<2,2> mesh;
         mesh.ConstructFromMeshReader(mesh_reader);
 
+        double mean_cell_area = 0.0;
         for (unsigned element_index = 0; element_index < mesh.GetNumAllElements(); element_index++)
         {
             if (mesh.GetElement(element_index)->GetNumNodes() > 12)
             {
                 mesh.DeleteElementPriorToReMesh(element_index);
             }
+            else
+            {
+                mean_cell_area += mesh.GetVolumeOfElement(element_index);
+            }
         }
-//
+
+        // Need to rescale the mesh before remeshing
+        mean_cell_area /= mesh.GetNumAllElements() - 1; //Before Remesh the element is still being counted by chaste
+        for ( unsigned node_index = 0; node_index < mesh.GetNumAllNodes(); node_index++ )
+        {
+            auto p_this_node = mesh.GetNode(node_index);
+            p_this_node->rGetModifiableLocation() /= sqrt(2.0*mean_cell_area);
+        }
+
         mesh.ReMesh();
 
         // Create cells
@@ -112,19 +125,19 @@ public:
 
         // Create cell population
         VertexBasedCellPopulation<2> cell_population(mesh, cells);
-//        cell_population.SetRestrictVertexMovementBoolean(false);
+        cell_population.SetRestrictVertexMovementBoolean(false);
 
         // Set up cell-based simulation
         OffLatticeSimulation<2> simulator(cell_population);
         simulator.SetOutputDirectory("TestReadAndRunVirtalLeaf");
-        simulator.SetEndTime(200.0);
-        simulator.SetSamplingTimestepMultiple(50);
+        simulator.SetEndTime(1000.0);
+        simulator.SetSamplingTimestepMultiple(100);
         // Create a force law and pass it to the simulation
         MAKE_PTR(FarhadifarForce<2>, p_farhadifar_force);
         simulator.AddForce(p_farhadifar_force);
-//        MAKE_PTR(WoundHealingForce<2>, p_wound_force);
-//        p_wound_force->SetWoundTensionParameter(100.0);
-//        simulator.AddForce(p_wound_force);
+        MAKE_PTR(WoundHealingForce<2>, p_wound_force);
+        p_wound_force->SetWoundTensionParameter(1.0);
+        simulator.AddForce(p_wound_force);
 
         // A FarhadifarForce has to be used together with an AbstractTargetAreaModifier#2488
         MAKE_PTR(SimpleTargetAreaModifier<2>, p_growth_modifier);

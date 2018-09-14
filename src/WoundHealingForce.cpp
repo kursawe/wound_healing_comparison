@@ -34,7 +34,6 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "WoundHealingForce.hpp"
-#include "Debug.hpp"
 
 template<unsigned DIM>
 WoundHealingForce<DIM>::WoundHealingForce()
@@ -167,21 +166,10 @@ void WoundHealingForce<DIM>::AddForceContribution(AbstractCellPopulation<DIM>& r
         inner_boundary_nodes = second_boundary_nodes;
     }
 
-    PRINT_VARIABLE(inner_boundary_nodes.size());
-    PRINT_VARIABLE(first_boundary_nodes.size());
-    PRINT_VARIABLE(second_boundary_nodes.size());
-    PRINT_VARIABLE(first_boundary_nodes[0]);
-    PRINT_VARIABLE(second_boundary_nodes[0]);
-    PRINT_VARIABLE(first_boundary_nodes[first_boundary_nodes.size() - 1]);
-    PRINT_VARIABLE(second_boundary_nodes[first_boundary_nodes.size() - 1]);
-    PRINT_VARIABLE(first_boundary_nodes[1]);
-    PRINT_VARIABLE(second_boundary_nodes[1]);
     // Then, add forces to that boundary a for loop
 
-    MARK;
     for ( auto &node_index : inner_boundary_nodes )
     {
-    MARK;
         // Find the indices of the elements owned by this node
         std::set<unsigned> containing_elem_indices = p_cell_population->GetNode(node_index)->rGetContainingElementIndices();
 
@@ -209,7 +197,6 @@ void WoundHealingForce<DIM>::AddForceContribution(AbstractCellPopulation<DIM>& r
 
             if ( p_previous_node->IsBoundaryNode() )
             {
-                MARK;
                 c_vector<double, DIM> previous_edge_gradient =
                         -p_cell_population->rGetMesh().GetNextEdgeGradientOfElementAtNode(p_element,
                                 previous_node_local_index);
@@ -218,14 +205,12 @@ void WoundHealingForce<DIM>::AddForceContribution(AbstractCellPopulation<DIM>& r
 
             if ( p_next_node->IsBoundaryNode() )
             {
-                MARK;
                 c_vector<double, DIM> next_edge_gradient = p_cell_population->
                         rGetMesh().GetNextEdgeGradientOfElementAtNode(p_element, local_index);
                 line_tension_contribution -= mWoundTensionParameter*next_edge_gradient;
             }
 
         }
-        PRINT_VARIABLE(line_tension_contribution[0]);
         p_cell_population->GetNode(node_index)->AddAppliedForceContribution(line_tension_contribution);
     }
 
